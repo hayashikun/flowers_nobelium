@@ -1,18 +1,27 @@
 import os
-from os import path
-import urllib.request
-import urllib.error
 import tarfile
-import scipy.io
-import pandas as pd
+import urllib.error
+import urllib.request
+from os import path
 
+import numpy as np
+import pandas as pd
+import scipy.io
+from PIL import Image
+from chainer import datasets
+from tqdm import tqdm
 
 DataPath = path.join(path.dirname(__file__), "data")
+FlowerImagesDirectory = path.join(DataPath, "flowers")
+PreProcessedFlowerImagesDirectory = path.join(DataPath, "processed_flowers")
+LabelsPath = path.join(DataPath, "labels.csv")
+MeanPath = path.join(DataPath, "mean.npy")
+SplitDatasetSeed = 0
+ImageSize = 128
 
 
-def get_flowers():
-    img_dir = path.join(DataPath, "flowers")
-    if path.isdir(img_dir):
+def fetch_flowers():
+    if path.isdir(FlowerImagesDirectory):
         return True
     tgz_path = path.join(DataPath, "102flowers.tgz")
     if not path.isfile(tgz_path):
@@ -25,13 +34,12 @@ def get_flowers():
     jpg_path = path.join(DataPath, "jpg")
     if not path.exists(jpg_path):
         return False
-    os.rename(jpg_path, img_dir)
+    os.rename(jpg_path, FlowerImagesDirectory)
     return True
 
 
-def get_labels():
-    labels_path = path.join(DataPath, "labels.csv")
-    if path.isdir(labels_path):
+def fetch_labels():
+    if path.isdir(LabelsPath):
         return True
     mat_path = path.join(DataPath, "imagelabels.mat")
     if not path.isfile(mat_path):
@@ -44,7 +52,7 @@ def get_labels():
     labels = mat["labels"][0]
     images = ["image_{:05}.jpg".format(i + 1) for i in range(len(labels))]
     df = pd.DataFrame({"image": images, "label": labels})
-    df.to_csv(labels_path)
+    df.to_csv(LabelsPath)
     return True
 
 
@@ -54,3 +62,39 @@ def extract_tar(tar_path, extract_path):
         tar.extract(item, extract_path)
         if item.name.find(".tgz") != -1 or item.name.find(".tar") != -1:
             extract_tar(item.name, "./" + item.name[:item.name.rfind('/')])
+
+
+def process_data():
+    if path.exists(PreProcessedFlowerImagesDirectory):
+        return True
+    os.mkdir(PreProcessedFlowerImagesDirectory)
+    for f in tqdm(os.listdir(FlowerImagesDirectory)):
+        img = Image.open(path.join(FlowerImagesDirectory, f))
+        crop_size = min(img.width, img.height)
+        img = img.crop(((img.width - crop_size) // 2, (img.height - crop_size) // 2,
+                        (img.width + crop_size) // 2, (img.height + crop_size) // 2))
+        img = img.resize((ImageSize, ImageSize))
+        img.save(path.join(PreProcessedFlowerImagesDirectory, f))
+    return True
+
+
+def get_datasets():
+    process_data()
+    labels = pd.read_csv(LabelsPath, index_col=0)
+    ds = datasets.LabeledImageDataset(list(zip(labels["image"], labels["label"])), PreProcessedFlowerImagesDirectory)
+    return datasets.split_dataset_random(ds, int(len(ds) * 0.8), seed=SplitDatasetSeed)
+
+
+def calc_mean():
+    if os.path.exists(MeanPath):
+        return np.load(MeanPath)
+    train, _ = get_datasets()
+
+    mean = np.zeros((3, ImageSize, ImageSize))
+    for img, _ in tqdm(train):
+        mean += img[:3]
+
+    mean /= float(len(train))
+
+    np.save(MeanPath, mean)
+    return mean

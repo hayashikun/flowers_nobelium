@@ -1,4 +1,6 @@
+Pillow
 numpy
 scipy
 chainer
 pandas
+tqdm
