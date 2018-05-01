@@ -11,7 +11,7 @@ from PIL import Image
 from chainer import datasets
 from tqdm import tqdm
 
-DataPath = path.join(path.dirname(__file__), "data")
+DataPath = path.join(path.dirname(__file__), "_data")
 FlowerImagesDirectory = path.join(DataPath, "flowers")
 PreProcessedFlowerImagesDirectory = path.join(DataPath, "processed_flowers")
 LabelsPath = path.join(DataPath, "labels.csv")
@@ -23,6 +23,8 @@ ImageSize = 128
 def fetch_flowers():
     if path.isdir(FlowerImagesDirectory):
         return True
+    if not path.exists(DataPath):
+        os.mkdir(DataPath)
     tgz_path = path.join(DataPath, "102flowers.tgz")
     if not path.isfile(tgz_path):
         url = "http://www.robots.ox.ac.uk/~vgg/data/flowers/102/102flowers.tgz"

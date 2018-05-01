@@ -43,8 +43,7 @@ def main():
         print('Load model from', args.initmodel)
         chainer.serializers.load_npz(args.initmodel, model)
     if args.gpu >= 0:
-        chainer.backends.cuda.get_device_from_id(
-            args.gpu).use()  # Make the GPU current
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()  # Make the GPU current
         model.to_gpu()
 
     if data.fetch_flowers() and data.fetch_labels():
@@ -85,6 +84,7 @@ def main():
     if args.resume:
         chainer.serializers.load_npz(args.resume, trainer)
 
+    print("Start training")
     trainer.run()
 
 
