@@ -1,4 +1,5 @@
 import os
+import shutil
 import tarfile
 import urllib.error
 import urllib.request
@@ -11,13 +12,13 @@ from PIL import Image
 from chainer import datasets
 from tqdm import tqdm
 
-DataPath = path.join(path.dirname(__file__), "_data")
+DataPath = path.join(path.dirname(__file__), "data")
 FlowerImagesDirectory = path.join(DataPath, "flowers")
 PreProcessedFlowerImagesDirectory = path.join(DataPath, "processed_flowers")
 LabelsPath = path.join(DataPath, "labels.csv")
 MeanPath = path.join(DataPath, "mean.npy")
 SplitDatasetSeed = 0
-ImageSize = 128
+ClassNumber = 102
 
 
 def fetch_flowers():
@@ -66,24 +67,35 @@ def extract_tar(tar_path, extract_path):
             extract_tar(item.name, "./" + item.name[:item.name.rfind('/')])
 
 
-def process_data():
-    if path.exists(PreProcessedFlowerImagesDirectory):
-        return True
+def pre_process_data(image_size):
+    pre_process_log_path = path.join(DataPath, "pre_process.log")
+    with open(path.join(pre_process_log_path)) as f:
+        size = f.read()
+        try:
+            if image_size == int(size):
+                return True
+        except ValueError:
+            pass
+    shutil.rmtree(PreProcessedFlowerImagesDirectory)
     os.mkdir(PreProcessedFlowerImagesDirectory)
+    os.remove(MeanPath)
     for f in tqdm(os.listdir(FlowerImagesDirectory)):
         img = Image.open(path.join(FlowerImagesDirectory, f))
         crop_size = min(img.width, img.height)
         img = img.crop(((img.width - crop_size) // 2, (img.height - crop_size) // 2,
                         (img.width + crop_size) // 2, (img.height + crop_size) // 2))
-        img = img.resize((ImageSize, ImageSize))
+        img = img.resize((image_size, image_size))
         img.save(path.join(PreProcessedFlowerImagesDirectory, f))
+    calc_mean()
+    with open(pre_process_log_path, "w") as f:
+        f.write("{}".format(image_size))
     return True
 
 
 def get_datasets():
-    process_data()
     labels = pd.read_csv(LabelsPath, index_col=0)
-    ds = datasets.LabeledImageDataset(list(zip(labels["image"], labels["label"])), PreProcessedFlowerImagesDirectory)
+    # label: 1 -> 102
+    ds = datasets.LabeledImageDataset(list(zip(labels["image"], labels["label"] - 1)), PreProcessedFlowerImagesDirectory)
     return datasets.split_dataset_random(ds, int(len(ds) * 0.8), seed=SplitDatasetSeed)
 
 
@@ -92,11 +104,7 @@ def calc_mean():
         return np.load(MeanPath)
     train, _ = get_datasets()
 
-    mean = np.zeros((3, ImageSize, ImageSize))
-    for img, _ in tqdm(train):
-        mean += img[:3]
-
-    mean /= float(len(train))
+    mean = np.mean([img[:3] for img, _ in train], axis=0)
 
     np.save(MeanPath, mean)
     return mean
