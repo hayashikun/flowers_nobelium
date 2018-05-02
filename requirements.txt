@@ -4,3 +4,4 @@ scipy
 chainer
 pandas
 tqdm
+boto3

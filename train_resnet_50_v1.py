@@ -7,6 +7,7 @@ from chainer.training import extensions
 
 import data
 import models
+import output
 
 
 def main():
@@ -17,15 +18,15 @@ def main():
     parser.add_argument("--resume", '-r', default='', help="Initialize the trainer from given file")
     args = parser.parse_args()
 
-    batch = 10
-    epoch = 100
+    batch = 32
+    epoch = 1000
     val_batch = 200
     model = models.ResNet50V1(data.ClassNumber)
     if args.init:
         print('Load model from', args.initmodel)
         chainer.serializers.load_npz(args.init, model)
     if args.gpu >= 0:
-        chainer.backends.cuda.get_device_from_id(args.gpu).use()  # Make the GPU current
+        chainer.backends.cuda.get_device_from_id(args.gpu).use()
         model.to_gpu()
 
     if data.fetch_flowers() and data.fetch_labels():
@@ -36,7 +37,8 @@ def main():
 
     data.pre_process_data(224)
 
-    output_path = path.join(path.dirname(__file__), "out", model.__class__.__name__)
+    output_name = output.init_train(model.__class__)
+    output_path = path.join(output.OutPath, output_name)
 
     train, validate = data.get_datasets()
 
@@ -72,6 +74,9 @@ def main():
 
     print("Start training")
     trainer.run()
+
+    print("Finish training")
+    output.upload_result(output_name)
 
 
 if __name__ == '__main__':
