@@ -19,7 +19,7 @@ def main():
     args = parser.parse_args()
 
     batch = 32
-    epoch = 10
+    epoch = 50
     val_batch = 200
     model = models.ResNet50V1(data.ClassNumber)
     if args.init:
@@ -54,12 +54,14 @@ def main():
     trainer = training.Trainer(updater, (epoch, 'epoch'), output_path)
 
     val_interval = 500, 'iteration'
-    log_interval = 200, 'iteration'
+    log_interval = 250, 'iteration'
+    snapshot_interval = 5000, 'iteration'
 
     trainer.extend(extensions.Evaluator(val_iter, classifier, device=args.gpu), trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
-    trainer.extend(extensions.snapshot(), trigger=val_interval)
-    trainer.extend(extensions.snapshot_object(model, 'model_iter_{.updater.iteration}'), trigger=val_interval)
+
+    trainer.extend(extensions.snapshot(), trigger=snapshot_interval)
+    trainer.extend(extensions.snapshot_object(model, 'model_iter_{.updater.iteration}'), trigger=snapshot_interval)
 
     trainer.extend(extensions.LogReport(trigger=log_interval))
     trainer.extend(extensions.observe_lr(), trigger=log_interval)
@@ -75,10 +77,11 @@ def main():
     print("Start training")
     trainer.run()
 
-    print("Finish training")
     model.to_cpu()
     chainer.serializers.save_npz(path.join(output_path, "model.npz"), model)
+    print("Uploading files")
     output.upload_result(output_name)
+    print("Finish training")
 
 
 if __name__ == '__main__':
