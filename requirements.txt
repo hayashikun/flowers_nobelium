@@ -4,4 +4,6 @@ scipy
 chainer
 pandas
 tqdm
+botocore
 boto3
+cupy

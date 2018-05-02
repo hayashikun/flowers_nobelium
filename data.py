@@ -69,13 +69,15 @@ def extract_tar(tar_path, extract_path):
 
 def pre_process_data(image_size):
     pre_process_log_path = path.join(DataPath, "pre_process.log")
-    with open(path.join(pre_process_log_path)) as f:
-        size = f.read()
-        try:
+    try:
+        with open(path.join(pre_process_log_path)) as f:
+            size = f.read()
             if image_size == int(size):
                 return True
-        except ValueError:
-            pass
+    except ValueError:
+        pass
+    except FileNotFoundError:
+        pass
     shutil.rmtree(PreProcessedFlowerImagesDirectory)
     os.mkdir(PreProcessedFlowerImagesDirectory)
     os.remove(MeanPath)
