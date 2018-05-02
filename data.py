@@ -78,9 +78,11 @@ def pre_process_data(image_size):
         pass
     except FileNotFoundError:
         pass
-    shutil.rmtree(PreProcessedFlowerImagesDirectory)
-    os.mkdir(PreProcessedFlowerImagesDirectory)
-    os.remove(MeanPath)
+    if path.exists(PreProcessedFlowerImagesDirectory):
+        shutil.rmtree(PreProcessedFlowerImagesDirectory)
+        os.makedirs(PreProcessedFlowerImagesDirectory)
+    if path.exists(MeanPath):
+        os.remove(MeanPath)
     for f in tqdm(os.listdir(FlowerImagesDirectory)):
         img = Image.open(path.join(FlowerImagesDirectory, f))
         crop_size = min(img.width, img.height)
