@@ -53,8 +53,8 @@ def main():
     updater = training.updaters.StandardUpdater(train_iter, optimizer, device=args.gpu)
     trainer = training.Trainer(updater, (epoch, 'epoch'), output_path)
 
-    val_interval = 2, 'iteration'
-    log_interval = 2, 'iteration'
+    val_interval = 500, 'iteration'
+    log_interval = 200, 'iteration'
 
     trainer.extend(extensions.Evaluator(val_iter, classifier, device=args.gpu), trigger=val_interval)
     trainer.extend(extensions.dump_graph('main/loss'))
