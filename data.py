@@ -80,7 +80,7 @@ def pre_process_data(image_size):
         pass
     if path.exists(PreProcessedFlowerImagesDirectory):
         shutil.rmtree(PreProcessedFlowerImagesDirectory)
-        os.makedirs(PreProcessedFlowerImagesDirectory)
+    os.makedirs(PreProcessedFlowerImagesDirectory)
     if path.exists(MeanPath):
         os.remove(MeanPath)
     for f in tqdm(os.listdir(FlowerImagesDirectory)):
