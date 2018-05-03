@@ -41,3 +41,18 @@ def upload_result(name):
 
             with open(local_path, 'rb') as f:
                 bucket.put_object(Key=s3_path, Body=f)
+
+
+def fetch_log(name):
+    log_path = os.path.join(OutPath, "{}.log".format(name))
+    if not os.path.exists(log_path):
+        bucket = boto3.resource("s3").Bucket("hayashikun")
+        bucket.download_file(os.path.join(S3Path, name, "log"), log_path)
+    with open(log_path) as f:
+        return json.load(f)
+
+
+def log_list():
+    bucket = boto3.resource("s3").Bucket("hayashikun")
+    result = bucket.meta.client.list_objects(Bucket=bucket.name, Prefix=S3Path + "/", Delimiter='/')
+    return [p["Prefix"].replace(S3Path, "").strip("/") for p in result.get("CommonPrefixes") if "Prefix" in p]
